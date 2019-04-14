@@ -1,0 +1,119 @@
+
+#
+# redfish example for Supermicro gear 
+#
+
+#
+# 1. enter BMC Update Mode
+#
+[host]$ curl -s -k -u <USER>:<PASSWORD> -X POST -d '{ }' https://<HOST_BMC>/redfish/v1/UpdateService/FirmwareInventory/BMC/Actions/Oem/FirmwareInventory.EnterBMCUpdateMode | jq .
+{
+  "Success": {
+    "code": "Base.v1_0_0.Success",
+    "Message": "Successfully Completed Request."
+  }
+}
+[host]$
+
+#
+# 2. upload BMC update 
+#
+[host]$ curl -s -k -u <USER>:<PASSWORD> -X POST --header "Expect:" --header "Content-Type: multipart/form-data" -F bbbCCC=@SMT_X11AST2500_164.bin https://<HOST_BMC>/redfish/v1/UpdateService/FirmwareInventory/BMC/Actions/Oem/FirmwareInventory.UploadBMC | jq .
+{
+  "Success": {
+    "code": "Base.v1_0_0.Success",
+    "Message": "Successfully Completed Request."
+  }
+}
+[host]$ 
+
+#
+# 3. update BMC
+#
+[host]$ curl -s -k -u <USER>:<PASSWORD> -X GET https://<HOST_BMC>/redfish/v1/UpdateService/FirmwareInventory/BMC | jq .
+{
+  "@odata.context": "/redfish/v1/$metadata#FirmwareInventory.FirmwareInventory",
+  "@odata.type": "#FirmwareInventory.v1_0_0.FirmwareInventory",
+  "@odata.id": "/redfish/v1/UpdateService/FirmwareInventory/BMC",
+  "Id": "FirmwareInventory",
+  "Name": "SUPERMICRO BMC Firmware",
+  "Description": "Description of SUPERMICRO BMC Firmware",
+  "Updateble": true,
+  "Version": "01.38",
+  "VersionSequence": "<major>.<minor>",
+  "UpdateStatus": "Updating",
+  "UpdateProgress": "0%",
+  "Actions": {
+    "Oem": {
+      "#FirmwareInventory.UpdateBMC": {
+        "target": "/redfish/v1/UpdateService/FirmwareInventory/BMC/Actions/Oem/FirmwareInventory.UpdateBMC"
+      },
+      "#FirmwareInventory.CancelBMC": {
+        "target": "/redfish/v1/UpdateService/FirmwareInventory/BMC/Actions/Oem/FirmwareInventory.CancelBMC"
+      }
+    }
+  },
+  "Oem": {}
+}
+[host]$
+[host]$ curl -s -k -u <USER>:<PASSWORD> -X POST -d '{ "PreserveCfg": true, "PreserveSdr": true, "PreserveSsl": true, "UpdateBootLdr": true }' https://<HOST_BMC>/redfish/v1/UpdateService/FirmwareInventory/BMC/Actions/Oem/FirmwareInventory.UpdateBMC | jq .
+{
+  "Success": {
+    "code": "Base.v1_0_0.Success",
+    "Message": "Successfully Completed Request."
+  }
+}
+[host]$
+
+#
+# 4. track progress of BMC update
+# note the "UpdateStatus" and "UpdateProgress" fields
+#
+[host]$ curl -s -k -u <USER>:<PASSWORD> -X GET https://<BMC_HOST>/redfish/v1/UpdateService/FirmwareInventory/BMC | jq .
+{
+  "@odata.context": "/redfish/v1/$metadata#FirmwareInventory.FirmwareInventory",
+  "@odata.type": "#FirmwareInventory.v1_0_0.FirmwareInventory",
+  "@odata.id": "/redfish/v1/UpdateService/FirmwareInventory/BMC",
+  "Id": "FirmwareInventory",
+  "Name": "SUPERMICRO BMC Firmware",
+  "Description": "Description of SUPERMICRO BMC Firmware",
+  "Updateble": true,
+  "Version": "01.38",
+  "VersionSequence": "<major>.<minor>",
+  "UpdateStatus": "Updating",
+  "UpdateProgress": "11%",
+  "Actions": {
+    "Oem": {}
+  },
+  "Oem": {}
+}
+[host]$ curl -s -k -u <USER>:<PASSWORD> -X GET https://<BMC_HOST>/redfish/v1/UpdateService/FirmwareInventory/BMC | jq .
+{
+  "@odata.context": "/redfish/v1/$metadata#FirmwareInventory.FirmwareInventory",
+  "@odata.type": "#FirmwareInventory.v1_0_0.FirmwareInventory",
+  "@odata.id": "/redfish/v1/UpdateService/FirmwareInventory/BMC",
+  "Id": "FirmwareInventory",
+  "Name": "SUPERMICRO BMC Firmware",
+  "Description": "Description of SUPERMICRO BMC Firmware",
+  "Updateble": true,
+  "Version": "01.38",
+  "VersionSequence": "<major>.<minor>",
+  "UpdateStatus": "Updating",
+  "UpdateProgress": "18%",
+  "Actions": {
+    "Oem": {}
+  },
+  "Oem": {}
+}
+[host]$
+
+
+#
+# 5. issue bmc cold reboot once update is complete 
+# (issuing update should reboot bmc...but doesn't hurt to reboot again)
+#
+[host]$ curl -s -k -u <USER>:<PASSWORD> -X POST -d '{ }' https://<BMC_HOST>/redfish/v1/Managers/1/Actions/Manager.Reset 
+
+
+
+
