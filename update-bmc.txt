@@ -1,3 +1,15 @@
+#
+# example below if pre-BMC v1.64 redfish API endpoints for Supermicro gear
+#
+# Supermicro downloads can be found at: 
+# https://www.supermicro.com/support/resources/bios_ipmi.php?vendor=1
+#
+
+#
+# the example below updates BMC to v1.64 
+# after this update (post v1.64) redfish API endpoints/paths change slightly 
+#
+
 
 #
 # redfish example for Supermicro gear 
