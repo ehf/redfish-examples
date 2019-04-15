@@ -3,6 +3,10 @@
 # upgrading to v3.0a (update file: X11DDW9.112 )
 #
 
+# Supermicro downloads can be found at: 
+# https://www.supermicro.com/support/resources/bios_ipmi.php?vendor=1
+#
+
 # example below is with host running BMC v1.64
 
 
