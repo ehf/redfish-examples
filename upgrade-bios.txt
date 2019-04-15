@@ -1,0 +1,396 @@
+#
+# example below is for BIOS upgrade on Supermicro gear 
+# upgrading to v3.0a (update file: X11DDW9.112 )
+#
+
+# example below is with host running BMC v1.64
+
+
+#
+# 1. Enter BIOS update mode 
+#
+[13:40]$ curl -s -k -u <USER>:<PASSWORD> -X GET https://<HOST_BMC>/redfish/v1/UpdateService/ | jq .
+{
+  "@odata.context": "/redfish/v1/$metadata#UpdateService.UpdateService",
+  "@odata.type": "#UpdateService.v1_2_1.UpdateService",
+  "@odata.id": "/redfish/v1/UpdateService",
+  "Id": "UpdateService",
+  "Name": "Update Service",
+  "Description": "Service for updating firmware and includes inventory of firmware",
+  "Status": {
+    "State": "Enabled",
+    "Health": "OK",
+    "HealthRollup": "OK"
+  },
+  "ServiceEnabled": true,
+  "Actions": {
+    "Oem": {},
+    "#UpdateService.SimpleUpdate": {
+      "target": "/redfish/v1/UpdateService/Actions/UpdateService.SimpleUpdate",
+      "@Redfish.ActionInfo": "/redfish/v1/UpdateService/SimpleUpdateActionInfo"
+    }
+  },
+  "Oem": {
+    "Supermicro": {
+      "@odata.type": "#SmcUpdateServiceExtensions.v1_0_0.UpdateService",
+      "SSLCert": {
+        "@odata.id": "/redfish/v1/UpdateService/SSLCert"
+      },
+      "IPMIConfig": {
+        "@odata.id": "/redfish/v1/UpdateService/IPMIConfig"
+      },
+      "SmcFirmwareInventory": {
+        "@odata.id": "/redfish/v1/UpdateService/SmcFirmwareInventory"
+      }
+    }
+  }
+}
+[13:40]$ curl -s -k -u <USER>:><PASSWORD> -X GET https://<HOST_BMC>/redfish/v1/UpdateService/SmcFirmwareInventory | jq .
+{
+  "@odata.context": "/redfish/v1/$metadata#SmcFirmwareInventoryCollection.SmcFirmwareInventoryCollection",
+  "@odata.type": "#SmcFirmwareInventoryCollection.SmcFirmwareInventoryCollection",
+  "@odata.id": "/redfish/v1/UpdateService/SmcFirmwareInventory",
+  "Name": "Firmware Inventory Collection",
+  "Members@odata.count": 2,
+  "Members": [
+    {
+      "@odata.id": "/redfish/v1/UpdateService/SmcFirmwareInventory/BMC"
+    },
+    {
+      "@odata.id": "/redfish/v1/UpdateService/SmcFirmwareInventory/BIOS"
+    }
+  ],
+  "Oem": {}
+}
+[13:41]$ curl -s -k -u <USER>:><PASSWORD> -X GET https://<HOST_BMC>/redfish/v1/UpdateService/SmcFirmwareInventory/BIOS | jq .
+{
+  "@odata.context": "/redfish/v1/$metadata#SmcFirmwareInventory.SmcFirmwareInventory",
+  "@odata.type": "#SmcFirmwareInventory.v1_0_0.SmcFirmwareInventory",
+  "@odata.id": "/redfish/v1/UpdateService/SmcFirmwareInventory/BIOS",
+  "Id": "BIOS",
+  "Name": "SUPERMICRO BIOS",
+  "Description": "Description of SUPERMICRO BIOS",
+  "Updatable": true,
+  "VersionSequence": "BIOS Date:  <Date> Rev <major>.<minor>",
+  "Version": "",
+  "RelatedItem": [
+    {
+      "@odata.id": "/redfish/v1/Systems/1/Bios"
+    }
+  ],
+  "Actions": {
+    "Oem": {},
+    "#SmcFirmwareInventory.EnterUpdateMode": {
+      "target": "/redfish/v1/UpdateService/SmcFirmwareInventory/BIOS/Actions/SmcFirmwareInventory.EnterUpdateMode"
+    }
+  },
+  "Oem": {}
+}
+[13:41]$ curl -s -k -u <USER>:><PASSWORD> -X POST -d '{ }' https://<HOST_BMC>/redfish/v1/UpdateService/SmcFirmwareInventory/BIOS/Actions/SmcFirmwareInventory.EnterUpdateMode | jq .
+{
+  "Success": {
+    "code": "Base.v1_4_0.Success",
+    "Message": "Successfully Completed Request."
+  }
+}
+[13:42]$
+
+#
+# 2. upload BIOS update
+#
+[13:44]$ curl -s -k -u <USER>:<PASSWORD> -X GET https://<HOST_BMC>/redfish/v1/UpdateService/SmcFirmwareInventory/BIOS | jq .
+{
+  "@odata.context": "/redfish/v1/$metadata#SmcFirmwareInventory.SmcFirmwareInventory",
+  "@odata.type": "#SmcFirmwareInventory.v1_0_0.SmcFirmwareInventory",
+  "@odata.id": "/redfish/v1/UpdateService/SmcFirmwareInventory/BIOS",
+  "Id": "BIOS",
+  "Name": "SUPERMICRO BIOS",
+  "Description": "Description of SUPERMICRO BIOS",
+  "Updatable": true,
+  "VersionSequence": "BIOS Date:  <Date> Rev <major>.<minor>",
+  "Version": "",
+  "RelatedItem": [
+    {
+      "@odata.id": "/redfish/v1/Systems/1/Bios"
+    }
+  ],
+  "Actions": {
+    "Oem": {},
+    "#SmcFirmwareInventory.Upload": {
+      "target": "/redfish/v1/UpdateService/SmcFirmwareInventory/BIOS/Actions/SmcFirmwareInventory.Upload"
+    },
+    "#SmcFirmwareInventory.Cancel": {
+      "target": "/redfish/v1/UpdateService/SmcFirmwareInventory/BIOS/Actions/SmcFirmwareInventory.Cancel"
+    }
+  },
+  "Oem": {}
+}
+[13:44]$
+[13:44]$ curl -s -k -u <USER>:<PASSWORD> -X POST --header "Expect:" --header "Content-Type: multipart/form-data" -F bbb=@X11DDW9.112 https://<HOST_BMC>/redfish/v1/UpdateService/SmcFirmwareInventory/BIOS/Actions/SmcFirmwareInventory.Upload | jq .
+{
+  "Success": {
+    "code": "Base.v1_4_0.Success",
+    "Message": "Successfully Completed Request."
+  }
+}
+[13:48]$
+
+#
+# 3. upgrade BIOS
+#
+[13:48]$ curl -s -k -u <USER>:<PASSWORD> -X GET https://<HOST_BMC>/redfish/v1/UpdateService/SmcFirmwareInventory/BIOS | jq .
+{
+  "@odata.context": "/redfish/v1/$metadata#SmcFirmwareInventory.SmcFirmwareInventory",
+  "@odata.type": "#SmcFirmwareInventory.v1_0_0.SmcFirmwareInventory",
+  "@odata.id": "/redfish/v1/UpdateService/SmcFirmwareInventory/BIOS",
+  "Id": "BIOS",
+  "Name": "SUPERMICRO BIOS",
+  "Description": "Description of SUPERMICRO BIOS",
+  "Updatable": true,
+  "VersionSequence": "BIOS Date:  <Date> Rev <major>.<minor>",
+  "Version": "",
+  "UpdateStatus": "ReadyToUpdate",
+  "UpdateVersion": "BIOS Date: 1/12/2019 Rev 3.0a",
+  "RelatedItem": [
+    {
+      "@odata.id": "/redfish/v1/Systems/1/Bios"
+    }
+  ],
+  "Actions": {
+    "Oem": {},
+    "#SmcFirmwareInventory.Update": {
+      "target": "/redfish/v1/UpdateService/SmcFirmwareInventory/BIOS/Actions/SmcFirmwareInventory.Update",
+      "@Redfish.ActionInfo": "/redfish/v1/UpdateService/SmcFirmwareInventory/BIOS/UpdateActionInfo"
+    },
+    "#SmcFirmwareInventory.Cancel": {
+      "target": "/redfish/v1/UpdateService/SmcFirmwareInventory/BIOS/Actions/SmcFirmwareInventory.Cancel"
+    }
+  },
+  "Oem": {}
+}
+[13:49]$ curl -s -k -u <USER>:<PASSWORD> -X GET https://<HOST_BMC>/redfish/v1/UpdateService/SmcFirmwareInventory/BIOS | jq .UpdateStatus
+"ReadyToUpdate"
+[13:49]$
+
+#
+# 3a. issue upgrade
+#
+[13:49]$ curl -s -k -u <USER>:<PASSWORD> -X POST -d '{ "PreserveME": true, "PreserveNVRAM": true, "PreserveSMBIOS": true }' https://<HOST_BMC>/redfish/v1/UpdateService/SmcFirmwareInventory/BIOS/Actions/SmcFirmwareInventory.Update | jq .
+{
+  "Accepted": {
+    "code": "Base.v1_4_0.Accepted",
+    "Message": "Successfully Accepted Request. Please see the location header and ExtendedInfo for more information.",
+    "@Message.ExtendedInfo": [
+      {
+        "MessageId": "SMC.v1_0_0.OemSimpleupdateAcceptedMessage",
+        "Severity": "Ok",
+        "Resolution": "No resolution was required.",
+        "Message": "Please also check Task Resource /redfish/v1/TaskService/Tasks/1 to see more information.",
+        "MessageArgs": [
+          "/redfish/v1/TaskService/Tasks/1"
+        ],
+        "RelatedProperties": [
+          "BiosUpdateAccepted"
+        ]
+      }
+    ]
+  }
+}
+
+
+# 
+# 4. check upgrade status
+#
+[13:52]$ curl -s -k -u <USER>:<PASSWORD> -X GET https://<HOST_BMC>/redfish/v1/UpdateService/SmcFirmwareInventory/BIOS | jq .
+{
+  "@odata.context": "/redfish/v1/$metadata#SmcFirmwareInventory.SmcFirmwareInventory",
+  "@odata.type": "#SmcFirmwareInventory.v1_0_0.SmcFirmwareInventory",
+  "@odata.id": "/redfish/v1/UpdateService/SmcFirmwareInventory/BIOS",
+  "Id": "BIOS",
+  "Name": "SUPERMICRO BIOS",
+  "Description": "Description of SUPERMICRO BIOS",
+  "Updatable": true,
+  "VersionSequence": "BIOS Date:  <Date> Rev <major>.<minor>",
+  "Version": "",
+  "UpdateStatus": "Updating",
+  "RelatedItem": [
+    {
+      "@odata.id": "/redfish/v1/Systems/1/Bios"
+    }
+  ],
+  "Oem": {}
+}
+[13:53]$
+[13:53]$ curl -s -k -u <USER>:<PASSWORD> -X GET https://<HOST_BMC>/redfish/v1/UpdateService/SmcFirmwareInventory/BIOS | jq .
+{
+  "@odata.context": "/redfish/v1/$metadata#SmcFirmwareInventory.SmcFirmwareInventory",
+  "@odata.type": "#SmcFirmwareInventory.v1_0_0.SmcFirmwareInventory",
+  "@odata.id": "/redfish/v1/UpdateService/SmcFirmwareInventory/BIOS",
+  "Id": "BIOS",
+  "Name": "SUPERMICRO BIOS",
+  "Description": "Description of SUPERMICRO BIOS",
+  "Updatable": true,
+  "VersionSequence": "BIOS Date:  <Date> Rev <major>.<minor>",
+  "Version": "",
+  "UpdateStatus": "Updating",
+  "RelatedItem": [
+    {
+      "@odata.id": "/redfish/v1/Systems/1/Bios"
+    }
+  ],
+  "Oem": {}
+}
+[13:53]$ curl -s -k -u <USER>:<PASSWORD> -X GET https://<HOST_BMC>/redfish/v1/UpdateService/SmcFirmwareInventory/BIOS | jq .UpdateStatus
+"Updating"
+[13:54]$
+[13:54]$ curl -s -k -u <USER>:<PASSWORD> -X GET https://<HOST_BMC>/redfish/v1/UpdateService/SmcFirmwareInventory/BIOS | jq .UpdateStatus
+"Updating"
+[13:55]$
+
+# 
+# once BIOS upgrade is complete, the "UpdateStatus" field will no longer appear. (note the "null" value in the output below)
+#
+[13:58]$ curl -s -k -u <USER>:<PASSWORD> -X GET https://<HOST_BMC>/redfish/v1/UpdateService/SmcFirmwareInventory/BIOS | jq .UpdateStatus
+null
+[13:58]$
+[13:59]$ curl -s -k -u <USER>:<PASSWORD> -X GET https://<HOST_BMC>/redfish/v1/UpdateService/SmcFirmwareInventory/BIOS | jq .UpdateStatus
+null
+[13:59]$ curl -s -k -u <USER>:<PASSWORD> -X GET https://<HOST_BMC>/redfish/v1/UpdateService/SmcFirmwareInventory/BIOS | jq .
+{
+  "@odata.context": "/redfish/v1/$metadata#SmcFirmwareInventory.SmcFirmwareInventory",
+  "@odata.type": "#SmcFirmwareInventory.v1_0_0.SmcFirmwareInventory",
+  "@odata.id": "/redfish/v1/UpdateService/SmcFirmwareInventory/BIOS",
+  "Id": "BIOS",
+  "Name": "SUPERMICRO BIOS",
+  "Description": "Description of SUPERMICRO BIOS",
+  "Updatable": true,
+  "VersionSequence": "BIOS Date:  <Date> Rev <major>.<minor>",
+  "Version": "",
+  "RelatedItem": [
+    {
+      "@odata.id": "/redfish/v1/Systems/1/Bios"
+    }
+  ],
+  "Actions": {
+    "Oem": {},
+    "#SmcFirmwareInventory.EnterUpdateMode": {
+      "target": "/redfish/v1/UpdateService/SmcFirmwareInventory/BIOS/Actions/SmcFirmwareInventory.EnterUpdateMode"
+    }
+  },
+  "Oem": {}
+}
+[13:59]$
+
+# 
+# 5.  confirm BIOS upgrade is complete by taking a look at event logs.
+# 5a. note event log #5 reports "BIOS was updated successfully".
+#
+[14:09]$ curl -s -k -u <USER>:<PASSWORD> -X GET https://<HOST_BMC>/redfish/v1/Managers/1/LogServices/Log1/Entries | jq .
+{
+  "@odata.context": "/redfish/v1/$metadata#LogEntryCollection.LogEntryCollection",
+  "@odata.type": "#LogEntryCollection.LogEntryCollection",
+  "@odata.id": "/redfish/v1/Managers/1/LogServices/Log1/Entries",
+  "Id": "1",
+  "Name": "Maintenance Event Log Service Collection",
+  "Description": "Collection of Maintenance Event Logs",
+  "Members@odata.count": 5,
+  "Members": [
+    {
+      "@odata.id": "/redfish/v1/Managers/1/LogServices/Log1/Entries/1",
+      "Id": "1",
+      "Name": "Maintenance Event Log Entry 1",
+      "Severity": "OK",
+      "Created": "2019-04-13T20:12:19+00:00",
+      "Interface": "Web",
+      "Description": "Web login was successful."
+    },
+    {
+      "@odata.id": "/redfish/v1/Managers/1/LogServices/Log1/Entries/2",
+      "Id": "2",
+      "Name": "Maintenance Event Log Entry 2",
+      "Severity": "Warning",
+      "Created": "2019-04-13T20:16:07+00:00",
+      "Interface": "Redfish",
+      "Description": "The user attempted to access BMC"
+    },
+    {
+      "@odata.id": "/redfish/v1/Managers/1/LogServices/Log1/Entries/3",
+      "Id": "3",
+      "Name": "Maintenance Event Log Entry 3",
+      "Severity": "OK",
+      "Created": "2019-04-13T20:30:53+00:00",
+      "Interface": "Web",
+      "Description": "Web login was successful."
+    },
+    {
+      "@odata.id": "/redfish/v1/Managers/1/LogServices/Log1/Entries/4",
+      "Id": "4",
+      "Name": "Maintenance Event Log Entry 4",
+      "Severity": "OK",
+      "Created": "2019-04-13T20:34:32+00:00",
+      "Interface": "Web",
+      "Description": "Web login was successful."
+    },
+    {
+      "@odata.id": "/redfish/v1/Managers/1/LogServices/Log1/Entries/5",
+      "Id": "5",
+      "Name": "Maintenance Event Log Entry 5",
+      "Severity": "OK",
+      "Created": "2019-04-13T20:55:42+00:00",
+      "Interface": "Redfish",
+      "Description": "BIOS was updated successfully."
+    }
+  ]
+}
+[14:09]$
+
+
+# 
+# 5. restart host 
+#
+[14:12]$ curl -s -k -u <USER>:<PASSWORD> -X GET https://<HOST_BMC>/redfish/v1/Systems/1/ResetActionInfo | jq .
+{
+  "@odata.context": "/redfish/v1/$metadata#ActionInfo.ActionInfo",
+  "@odata.type": "#ActionInfo.v1_0_0.ActionInfo",
+  "@odata.id": "/redfish/v1/Systems/1/ResetActionInfo",
+  "Id": "ResetActionInfo",
+  "Name": "Reset Action Info",
+  "Parameters": [
+    {
+      "Name": "ResetType",
+      "Required": true,
+      "DataType": "String",
+      "ObjectDataType": "",
+      "AllowableValues": [
+        "On",
+        "ForceOff",
+        "GracefulShutdown",
+        "GracefulRestart",
+        "ForceRestart",
+        "Nmi",
+        "ForceOn"
+      ]
+    }
+  ],
+  "Oem": {}
+}
+[14:13]$
+
+[14:18]$ curl -s -k -u <USER>:<PASSWORD> -X POST -d '{ "ResetType": "GracefulRestart" }' https://<HOST_BMC>/redfish/v1/Systems/1/Actions/ComputerSystem.Reset | jq .
+{
+  "Success": {
+    "code": "Base.v1_4_0.Success",
+    "Message": "Successfully Completed Request."
+  }
+}
+[14:24]$
+
+# 
+# 5a. after restart, confirm PowerState and BIOS version 
+#
+[14:26]$ curl -s -k -u <USER>:<PASSWORD> -X GET https://<HOST_BMC>/redfish/v1/System/1 | jq .PowerState
+"On"
+[14:27]$ curl -s -k -u <USER>:<PASSWORD> -X GET https://<HOST_BMC>/redfish/v1/Systems/1 | jq .BiosVersion
+"3.0a"
+[14:27]$
+
