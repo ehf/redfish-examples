@@ -24,6 +24,6 @@
 #
 # 3. confirm hostname has changed 
 #
-[host]$ curl -s -u <USER>:<PASSWORD> -X GET -k https://<HOST_BMC>/redfish/v1/Managers/1/EthernetInterfaces/1 | jq .HostName
+[host]$ curl -s -k -u <USER>:<PASSWORD> -X GET https://<HOST_BMC>/redfish/v1/Managers/1/EthernetInterfaces/1 | jq .HostName
 "hostn0043"
 
