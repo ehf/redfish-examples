@@ -1,0 +1,85 @@
+# works on HP iLO4 and iLO5
+# using -K for curl config --user 
+# .netrc wasn't working properly with the older version of curl in use
+#
+
+==> get-model.sh <==
+#!/bin/bash
+
+ 
+model=$(curl -m 10 -k -K $HOME/ilo/.curl_config -s https://$1/redfish/v1/Systems/1/ | $HOME/bin/jq -r .Model)
+
+printf "$1,${model}\n"
+
+==> get-power.sh <==
+#!/bin/bash
+
+ 
+powerstate=$(curl -m 10 -k -K $HOME/ilo/.curl_config -s https://$1/redfish/v1/Systems/1/ | $HOME/bin/jq -r .PowerState)
+printf "$1,${powerstate}\n"
+
+==> get-status-ilo5.sh <==
+#!/bin/bash
+
+ 
+status=$(curl -m 10 -k -K $HOME/ilo/.curl_config -s https://$1/redfish/v1/UpdateService/ | $HOME/bin/jq .Oem.Hpe.FlashProgressPercent)
+
+printf "$1,${status}\n"
+
+==> get-status.sh <==
+#!/bin/bash
+
+ 
+status=$(curl -m 10 -k -K $HOME/ilo/.curl_config -s https://$1/redfish/v1/Managers/1/UpdateService/ |  $HOME/bin/jq -r '. | [.State, .ProgressPercent] | join(",")')
+
+printf "$1,${status}\n"
+
+==> get-version.sh <==
+#!/bin/bash
+
+version=$(curl -m 10 -k -K $HOME/ilo/.curl_config -s https://$1/redfish/v1/Managers/1/ | $HOME/bin/jq -r .FirmwareVersion)
+
+printf "$1,${version}\n"
+
+==> update-ilo-g10.sh <==
+#!/bin/bash
+
+# $1 --> iLO IP
+# $2 --> iLO firmware version
+
+ 
+version="$2"
+curl -m 15 -k -K $HOME/ilo/.curl_config -H "Content-Type: application/json" -s -X POST -d@ilo5-v${version//./}.json https://$1/redfish/v1/UpdateService/Actions/UpdateService.SimpleUpdate/ | $HOME/bin/jq .
+
+==> update-ilo.sh <==
+#!/bin/bash
+
+curl -m 15 -k -K $HOME/ilo/.curl_config -H "Content-Type: application/json" -s -X POST -d@ilo4.json https://$1/redfish/v1/Managers/1/UpdateService/Actions/HpiLOFirmwareUpdate.InstallFromURI/ | $HOME/bin/jq .
+
+
+==> collect-info-rf.sh <==
+#!/bin/bash
+
+
+host_firmware_version=$(curl -m 10 -k -K $HOME/ilo/.curl_config -s https://$1/redfish/v1/Managers/1/ | $HOME/bin/jq -r .FirmwareVersion)
+host_ilo_fqdn=$(curl -m 15 -k -K $HOME/ilo/.curl_config -s https://$1/redfish/v1/Managers/1/EthernetInterfaces/ | $HOME/bin/jq -r .Items[0].FQDN)
+host_system_info=$(curl -m 10 -k -K $HOME/ilo/.curl_config -s https://$1/redfish/v1/Systems/1/ | $HOME/bin/jq -r ' . | [.HostName, .Model] | join (",")' )
+
+
+printf "${1},$host_ilo_fqdn,$host_system_info,$host_firmware_version\n"
+
+==> ilo4.json <==
+{
+   "FirmwareURI": "http://10.10.10.10/ilo4_277.bin",
+   "TPMOverrideFlag": false
+}
+
+==> ilo5-v148.json <==
+{
+   "ImageURI": "http://10.10.10.10/ilo5_148.bin"
+}
+
+==> ilo5-v233.json <==
+{
+   "ImageURI": "http://10.10.10.10/ilo5_233.bin"
+}
