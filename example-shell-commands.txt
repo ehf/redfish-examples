@@ -83,3 +83,21 @@ printf "${1},$host_ilo_fqdn,$host_system_info,$host_firmware_version\n"
 {
    "ImageURI": "http://10.10.10.10/ilo5_233.bin"
 }
+
+
+
+### 
+# example host reboot 
+#
+
+==> force-restart.json <==
+{ "ResetType": "ForceRestart" }
+
+==> graceful-restart.json <==
+{ "ResetType": "GracefulRestart" }
+
+==> restart-it.sh <==
+#!/bin/bash
+
+curl -m 10 -k -K $HOME/ilo/.curl_config -s -d@$2-restart.json https://$1/redfish/v1/Systems/1/Actions/ComputerSystem.Reset | $HOME/bin/jq .
+
