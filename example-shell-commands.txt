@@ -101,3 +101,70 @@ printf "${1},$host_ilo_fqdn,$host_system_info,$host_firmware_version\n"
 
 curl -m 10 -k -K $HOME/ilo/.curl_config -s -d@$2-restart.json https://$1/redfish/v1/Systems/1/Actions/ComputerSystem.Reset | $HOME/bin/jq .
 
+
+
+########################
+##### v2 of collect info
+
+#!/bin/bash
+
+exec 2>/dev/null
+
+curl_config=".curl_config"
+host_ilo_pw="pw_1"
+host_ilo_ip=$(dig +short ${1})
+
+# unauthorized - 401
+# authorized - 200
+host_ilo_status=$(curl -s -m 5 -k -K $HOME/ilo/${curl_config} -w "%{http_code}" https://$1/redfish/v1/Managers/1/ -o /dev/null)
+#unauthorized=401
+#if [[ "${host_ilo_status}" -eq "${unauthorized}" ]]; then
+#   curl_config="${curl_config}_2"
+#   host_ilo_pw="pw_2"
+#fi
+
+case "${host_ilo_status}" in
+        401)
+           curl_config="${curl_config}_2"
+           host_ilo_pw="pw_2"
+           ;;
+        200)
+           curl_config="${curl_config}"
+           host_ilo_pw="pw_1"
+           ;;
+        000)
+           curl_config="${curl_config}"
+           host_ilo_pw="pw_timeout"
+           ;;
+        *)
+           curl_config="${curl_config}"
+           host_ilo_pw="pw_1"
+           ;;
+esac
+
+
+host_firmware_version=$(curl -m 10 -k -s -K $HOME/ilo/${curl_config} https://$1/redfish/v1/Managers/1/ | $HOME/bin/jq -r .FirmwareVersion | xargs)
+host_ilo_fqdn=$(curl -m 15 -k -s -K $HOME/ilo/${curl_config} https://$1/redfish/v1/Managers/1/EthernetInterfaces/ | $HOME/bin/jq -r '.Items[0].FQDN // empty' | xargs)
+host_system_info=$(curl -m 10 -k -s -K $HOME/ilo/${curl_config} https://$1/redfish/v1/Systems/1/ |$HOME/bin/jq -r ' . | [.HostName, .Model] | join (",")' | xargs )
+
+
+if [[ ${host_firmware_version} =~ "iLO 5" ]]; then
+   # check ilo self test status
+   host_ilo_health_status=$(curl -m 10 -k -K $HOME/ilo/${curl_config} -s https://$1/redfish/v1/Managers/1/ | $HOME/bin/jq -r '.Oem.Hpe.iLOSelfTestResults[] | select(.Status=="Degraded") | .Status, .Notes' | xargs)
+
+   # check if ilo is managed by something else
+   host_manager_type_status=$(curl -m 10 -k -K $HOME/ilo/${curl_config} -s https://$1/redfish/v1/ | $HOME/bin/jq -r '.Oem.Hpe.Manager[].IPManager // empty | .ManagerProductName, .ManagerUrl.xref' | xargs )
+else
+   # check ilo self test status
+   host_ilo_health_status=$(curl -m 10 -k -K $HOME/ilo/${curl_config} -s https://$1/redfish/v1/Managers/1/ | $HOME/bin/jq -r '.Oem.Hp.iLOSelfTestResults[] | select(.Status=="Degraded") | .Status, .Notes' | xargs)
+
+   # check if ilo is managed by something else
+   host_manager_type_status=$(curl -m 10 -k -K $HOME/ilo/${curl_config} -s https://$1/redfish/v1/ | $HOME/bin/jq -r '.Oem.Hp.Manager[].IPManager // empty | .ManagerProductName, .ManagerUrl.xref' | xargs )
+fi
+
+
+printf "${host_ilo_ip},${1},$host_ilo_fqdn,$host_system_info,$host_firmware_version,$host_manager_type_status,$host_ilo_health_status,$host_ilo_pw\n"
+
+
+###################
+
